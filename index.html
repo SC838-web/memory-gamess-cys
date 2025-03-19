@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(6, 150px);
+            grid-template-rows: repeat(4, 150px);
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .card {
+            width: 150px;
+            height: 150px;
+            background-color: #3498db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            cursor: pointer;
+            border-radius: 10px;
+            position: relative;
+        }
+        .card img {
+            max-width: 100%;
+            max-height: 100%;
+            display: none;
+        }
+        .flipped {
+            background-color: #f1c40f;
+        }
+        .matched {
+            background-color: #2ecc71;
+            pointer-events: none;
+        }
+        .controls {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Memory Game</h1>
+    <div class="controls">
+        <button onclick="restartGame()">Restart</button>
+        <p>Moves: <span id="moveCounter">0</span></p>
+        <p>Time: <span id="timer">0</span> sec</p>
+    </div>
+    <div class="game-board" id="gameBoard"></div>
+    <p id="winMessage" style="display:none; font-size:20px; color: green; font-weight: bold;">You Win!</p>
+    
+    <script>
+        const words = ["hat", "peg", "net", "dog", "cat", "cot", "bed", "van", "bat", "bag", "sink", "cop", "mat"];
+        const images = {
+            "hat": "images/hat.jpg",
+            "peg": "images/peg.jpg",
+            "net": "images/net.jpg",
+            "dog": "images/dog.jpg",
+            "cat": "images/cat.jpg",
+            "cot": "images/cot.jpg",
+            "bed": "images/bed.jpg",
+            "van": "images/van.jpg",
+            "bat": "images/bat.jpg",
+            "bag": "images/bag.jpg",
+            "sink": "images/sink.jpg",
+            "cop": "images/cop.jpg",
+            "mat": "images/rug.jpg"
+        };
+        
+        let cards = [];
+        words.forEach(word => {
+            cards.push({ type: "word", value: word, pair: word });
+            cards.push({ type: "image", value: images[word], pair: word });
+        });
+        cards.sort(() => Math.random() - 0.5);
+        
+        const gameBoard = document.getElementById('gameBoard');
+        const moveCounter = document.getElementById('moveCounter');
+        const timerDisplay = document.getElementById('timer');
+        const winMessage = document.getElementById('winMessage');
+        let firstCard = null, secondCard = null, lockBoard = false;
+        let moves = 0, timer = 0, timerInterval;
+        
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timer++;
+                timerDisplay.textContent = timer;
+            }, 1000);
+        }
+        
+        function createCard(cardData) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            card.dataset.pair = cardData.pair;
+            
+            if (cardData.type === "word") {
+                card.innerText = '?';
+            } else {
+                const img = document.createElement('img');
+                img.src = cardData.value;
+                card.appendChild(img);
+            }
+            
+            card.addEventListener('click', flipCard);
+            gameBoard.appendChild(card);
+        }
+        
+        function flipCard() {
+            if (lockBoard || this === firstCard || this.classList.contains('matched')) return;
+            
+            if (this.querySelector('img')) {
+                this.querySelector('img').style.display = 'block';
+            } else {
+                this.innerText = this.dataset.pair;
+            }
+            
+            this.classList.add('flipped');
+            
+            if (!firstCard) {
+                firstCard = this;
+                return;
+            }
+            
+            secondCard = this;
+            lockBoard = true;
+            moves++;
+            moveCounter.textContent = moves;
+            
+            if (firstCard.dataset.pair === secondCard.dataset.pair) {
+                firstCard.classList.add('matched');
+                secondCard.classList.add('matched');
+                resetBoard();
+                checkWin();
+            } else {
+                setTimeout(() => {
+                    firstCard.classList.remove('flipped');
+                    secondCard.classList.remove('flipped');
+                    
+                    if (firstCard.querySelector('img')) firstCard.querySelector('img').style.display = 'none';
+                    else firstCard.innerText = '?';
+                    
+                    if (secondCard.querySelector('img')) secondCard.querySelector('img').style.display = 'none';
+                    else secondCard.innerText = '?';
+                    
+                    resetBoard();
+                }, 1000);
+            }
+        }
+        
+        function resetBoard() {
+            [firstCard, secondCard, lockBoard] = [null, null, false];
+        }
+        
+        function checkWin() {
+            if (document.querySelectorAll('.matched').length === cards.length) {
+                clearInterval(timerInterval);
+                winMessage.style.display = 'block';
+            }
+        }
+        
+        function restartGame() {
+            gameBoard.innerHTML = '';
+            cards.sort(() => Math.random() - 0.5);
+            cards.forEach(createCard);
+            moves = 0;
+            timer = 0;
+            moveCounter.textContent = moves;
+            timerDisplay.textContent = timer;
+            clearInterval(timerInterval);
+            startTimer();
+            winMessage.style.display = 'none';
+        }
+        
+        cards.forEach(createCard);
+        startTimer();
+    </script>
+</body>
+</html>
